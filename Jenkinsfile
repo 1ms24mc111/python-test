@@ -18,7 +18,7 @@ pipeline {
             steps {
                 script {
                     // Building with the 'latest' tag
-                    dockerImage = docker.build("${IMAGE_NAME}:latest")
+                   def  dockerImage = docker.build("${IMAGE_NAME}:latest")
                 }
             }
         }
