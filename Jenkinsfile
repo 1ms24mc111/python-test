@@ -1,36 +1,31 @@
 pipeline {
     agent any
     environment {
-        // This must match the ID you gave your credentials in Jenkins Settings
+        // This MUST match the ID in Jenkins -> Manage Jenkins -> Credentials
         DOCKERHUB_CRED = credentials('dockerhubID') 
         IMAGE_NAME = 'vivek5041/python-test'
+	PATH = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
     }
     
     stages {
         stage('Checkout') {
             steps {
-                // Using the HTTPS URL you provided
                 git url: 'https://github.com/1ms24mc111/python-test.git', branch: 'main' 
             }
         }
         
         stage('Build Docker Image') {
             steps {
-                script {
-                    // Building with the 'latest' tag
-                   def  dockerImage = docker.build("${IMAGE_NAME}:latest")
-                }
+                // Using sh is safer on Mac than the docker.build script block
+                sh "docker build -t ${IMAGE_NAME}:latest ."
             }
         }
         
         stage('Push to DockerHub') {
             steps {
-                script {
-                    // This logs into Docker Hub using your Jenkins credentials
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhubID') {
-                        dockerImage.push()
-                    }
-                }
+                // Use the environment variables created by 'credentials' to login and push
+                sh "echo ${DOCKERHUB_CRED_PSW} | docker login -u ${DOCKERHUB_CRED_USR} --password-stdin"
+                sh "docker push ${IMAGE_NAME}:latest"
             }
         }
     }
@@ -43,7 +38,8 @@ pipeline {
             echo "Pipeline failed. Check the Jenkins Console Output."
         }
         always {
-            deleteDir() // Keeps your Jenkins server clean
+            sh "docker logout" // Security best practice
+            deleteDir() 
         }
     }
 }
